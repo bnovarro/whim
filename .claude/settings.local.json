@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(npx expo *)",
+      "Bash(watchman --version)",
+      "Bash(npm install *)",
+      "Bash(rm -rf /Users/brandonnovarro/Whim/.expo /tmp/metro-* /tmp/haste-map-* /Users/brandonnovarro/Whim/node_modules/.cache 2>/dev/null; echo \"Cache cleared\")",
+      "Bash(npx tsc *)",
+      "Bash(grep -n \"^  \\);\\\\|^}$\\\\|</SafeAreaView>\" /Users/brandonnovarro/Whim/src/screens/ProfileScreen.tsx)",
+      "Bash(grep -n \"sportGrid\\\\|sportChip\\\\|spotInputWrap\\\\|spotHint\\\\|chatHintRow\\\\|modeToggle\\\\|^}\\);\\\\s*$\" /Users/brandonnovarro/Whim/src/screens/CreateWhimScreen.tsx)",
+      "Bash(node -e \"const p=require\\('/Users/brandonnovarro/Whim/package.json'\\); console.log\\(JSON.stringify\\(p.scripts, null, 2\\)\\)\")"
+    ]
+  }
+}

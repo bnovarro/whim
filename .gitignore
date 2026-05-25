@@ -1,0 +1,39 @@
+## Expo / React Native
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+## Native build artifacts
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+## Environment — NEVER commit this
+.env
+.env.local
+.env.*.local
+
+## macOS
+.DS_Store
+*.swp
+
+## EAS / Expo credentials cache
+credentials.json
+.eas/
+
+## Editor
+.vscode/
+.idea/
+*.log
+
+## npm / yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

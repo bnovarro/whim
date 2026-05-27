@@ -51,11 +51,15 @@ export interface User {
   photos?: string[];    // up to 6 gallery photos
   instagram?: string;   // handle without @
   beli?: string;        // Beli app handle
+  spotify?: string;     // Spotify profile handle or URL
   bio?: string;
+  phone?: string;
   city: string;
   homeAddress?: string;
   friends: string[];
   pushToken?: string;
+  favorites?: string[]; // favorited venue/plan IDs
+  prompts?: Record<string, string>; // e.g. { "Favorite restaurant?": "Via Carota" }
   /** Who can see this user's "available/busy" status today */
   availabilityVisibility?: AvailabilityVisibility;
 }

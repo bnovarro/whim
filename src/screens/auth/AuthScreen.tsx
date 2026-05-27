@@ -83,10 +83,11 @@ const gStyles = StyleSheet.create({
 export default function AuthScreen({ navigation, route }: Props) {
   const { mode } = route.params;
   const [tab, setTab]                   = useState<'login' | 'signup'>(mode);
-  const [name, setName]                 = useState('');
+  const [firstName, setFirstName]       = useState('');
+  const [lastName, setLastName]         = useState('');
+  const [phone, setPhone]               = useState('');
   const [email, setEmail]               = useState('');
   const [password, setPassword]         = useState('');
-  const [instagram, setInstagram]       = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -131,13 +132,14 @@ export default function AuthScreen({ navigation, route }: Props) {
       Alert.alert('Hold on', 'Enter your email and password.');
       return;
     }
-    if (tab === 'signup' && !name.trim()) {
-      Alert.alert('Hold on', 'What\'s your name?');
-      return;
+    if (tab === 'signup') {
+      if (!firstName.trim()) { Alert.alert('Hold on', 'Enter your first name.'); return; }
+      if (!lastName.trim())  { Alert.alert('Hold on', 'Enter your last name.');  return; }
     }
     try {
       if (tab === 'signup') {
-        await signup(name.trim(), email.trim(), password, undefined, instagram.trim() || undefined);
+        await signup(firstName.trim(), lastName.trim(), phone.trim(), email.trim(), password);
+        navigation.replace('ProfileSetup');
       } else {
         await login(email.trim(), password);
       }
@@ -196,14 +198,41 @@ export default function AuthScreen({ navigation, route }: Props) {
           <View style={styles.form}>
 
             {tab === 'signup' && (
-              <Field label="Your name" required>
+              <View style={styles.nameRow}>
+                <Field label="First name" required style={styles.nameField}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Alex"
+                    placeholderTextColor={colors.textTertiary}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                  />
+                </Field>
+                <Field label="Last name" required style={styles.nameField}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Chen"
+                    placeholderTextColor={colors.textTertiary}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                  />
+                </Field>
+              </View>
+            )}
+
+            {tab === 'signup' && (
+              <Field label="Phone number" optional>
                 <TextInput
                   style={styles.input}
-                  placeholder="Alex Chen"
+                  placeholder="(555) 000-0000"
                   placeholderTextColor={colors.textTertiary}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
                   returnKeyType="next"
                 />
               </Field>
@@ -241,26 +270,6 @@ export default function AuthScreen({ navigation, route }: Props) {
               </View>
             </Field>
 
-            {/* Optional Instagram at signup */}
-            {tab === 'signup' && (
-              <Field label="Instagram" optional>
-                <View style={styles.atRow}>
-                  <Text style={styles.atSign}>@</Text>
-                  <TextInput
-                    style={[styles.input, styles.atInput]}
-                    placeholder="yourhandle"
-                    placeholderTextColor={colors.textTertiary}
-                    value={instagram}
-                    onChangeText={v => setInstagram(v.replace(/^@/, ''))}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="done"
-                  />
-                </View>
-                <Text style={styles.fieldHint}>Makes it easier for people to find you</Text>
-              </Field>
-            )}
-
             {/* Submit */}
             <TouchableOpacity
               style={styles.submitBtn}
@@ -285,7 +294,7 @@ export default function AuthScreen({ navigation, route }: Props) {
 
             {tab === 'signup' && (
               <Text style={styles.profileHint}>
-                You can add your photo and bio anytime from your profile.
+                Next you'll set up your profile — photo, bio, and more.
               </Text>
             )}
           </View>
@@ -297,11 +306,11 @@ export default function AuthScreen({ navigation, route }: Props) {
 
 // ─── Field wrapper ─────────────────────────────────────────────────────────────
 
-function Field({ label, required, optional, children }: {
-  label: string; required?: boolean; optional?: boolean; children: React.ReactNode;
+function Field({ label, required, optional, style, children }: {
+  label: string; required?: boolean; optional?: boolean; style?: any; children: React.ReactNode;
 }) {
   return (
-    <View style={styles.fieldGroup}>
+    <View style={[styles.fieldGroup, style]}>
       <View style={styles.fieldLabelRow}>
         <Text style={styles.fieldLabel}>{label}</Text>
         {optional && <Text style={styles.fieldOptional}>optional · skip for now</Text>}
@@ -366,6 +375,8 @@ const styles = StyleSheet.create({
   },
 
   form: { gap: spacing.base },
+  nameRow: { flexDirection: 'row', gap: spacing.sm },
+  nameField: { flex: 1 },
 
   fieldGroup: { gap: spacing.xs },
   fieldLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginLeft: spacing.xs },

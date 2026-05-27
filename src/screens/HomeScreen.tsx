@@ -72,7 +72,9 @@ export default function HomeScreen() {
     if (weather) loadRecs(weather);
   }, [weather]);
 
-  const firstName = user?.name.split(' ')[0] || 'there';
+  // Extract first name; guard against email-prefix names (no space = likely auto-generated username)
+  const nameparts = user?.name?.trim().split(' ') ?? [];
+  const firstName = nameparts.length >= 2 ? nameparts[0] : (nameparts[0] || 'there');
   const activeWhims = whims.filter(w => w.status !== 'cancelled' && w.status !== 'completed');
   const visibleAlerts = alerts.filter(a => !dismissedAlerts.has(a.id));
 

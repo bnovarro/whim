@@ -8,6 +8,7 @@ import { RootStackParamList } from './types';
 
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import AuthScreen from '../screens/auth/AuthScreen';
+import ProfileSetupScreen from '../screens/auth/ProfileSetupScreen';
 import TabNavigator from './TabNavigator';
 import CreateWhimScreen from '../screens/CreateWhimScreen';
 import WhimDetailScreen from '../screens/WhimDetailScreen';
@@ -34,6 +35,7 @@ export default function AppNavigator() {
           </>
         ) : (
           <>
+            <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="Main" component={TabNavigator} />
             <Stack.Screen
               name="CreateWhim"

@@ -40,7 +40,7 @@ interface AuthState {
 
   loadStoredSession:    ()                                                                          => Promise<void>;
   login:               (email: string, password: string)                                          => Promise<void>;
-  signup:              (name: string, email: string, password: string, neighborhood?: string, instagram?: string) => Promise<void>;
+  signup:              (firstName: string, lastName: string, phone: string, email: string, password: string) => Promise<void>;
   loginWithGoogle:     (idToken: string, accessToken: string)                                     => Promise<void>;
   logout:              ()                                                                          => Promise<void>;
 
@@ -48,7 +48,12 @@ interface AuthState {
   updateAddress:       (address: string)                                     => Promise<void>;
   updateInstagram:     (handle: string)                                      => Promise<void>;
   updateBeli:          (handle: string)                                      => Promise<void>;
+  updateSpotify:       (handle: string)                                      => Promise<void>;
   updateBio:           (bio: string)                                         => Promise<void>;
+  updatePhone:         (phone: string)                                       => Promise<void>;
+  updatePrompts:       (prompts: Record<string, string>)                     => Promise<void>;
+  changePassword:      (newPassword: string)                                 => Promise<void>;
+  toggleFavorite:      (id: string)                                          => Promise<void>;
   updatePhotos:               (photos: string[])                             => Promise<void>;
   updateProfilePhoto:         (uri: string | null)                           => Promise<void>;
   updateAvailabilityVisibility: (v: AvailabilityVisibility)                  => Promise<void>;
@@ -77,6 +82,10 @@ async function fetchProfile(uid: string): Promise<User | null> {
     bio:                     data.bio ?? undefined,
     photo:                   data.photo ?? undefined,
     photos:                  data.photos ?? [],
+    spotify:                 data.spotify ?? undefined,
+    phone:                   data.phone ?? undefined,
+    favorites:               data.favorites ?? [],
+    prompts:                 data.prompts ?? {},
     pushToken:               data.push_token ?? undefined,
     availabilityVisibility:  (data.availability_visibility as AvailabilityVisibility) ?? 'private',
     friends:                 [],
@@ -159,15 +168,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user, isAuthenticated: !!user, isLoading: false });
   },
 
-  signup: async (name, email, password, neighborhood, instagram) => {
+  signup: async (firstName, lastName, phone, email, password) => {
     set({ isLoading: true });
     await new Promise(r => setTimeout(r, 700));
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
     if (!SUPABASE_CONFIGURED) {
-      const user = makeMockUser(name, email, {
-        homeAddress: neighborhood,
-        instagram:   instagram ? instagram.replace(/^@/, '') : undefined,
-      });
+      const user = makeMockUser(fullName, email, { phone: phone.trim() || undefined });
       await saveMockUser(user);
       set({ user, isAuthenticated: true, isLoading: false });
       return;
@@ -176,32 +183,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) { set({ isLoading: false }); throw new Error(error.message); }
 
-    // Supabase returns user:null (no error) when email is already registered —
-    // it hides the distinction to prevent email enumeration.
     if (!data.user) {
       set({ isLoading: false });
       throw new Error('An account with that email already exists. Try signing in instead.');
     }
 
-    // Insert the profile row. The handle_new_user trigger may have already done
-    // this; "on conflict do nothing" in the trigger means our insert is the
-    // authoritative one (we have the display name from the form).
     const { error: profileError } = await supabase.from('profiles').insert({
-      id:           data.user.id,
-      name,
-      username:     email.split('@')[0],
-      city:         'New York',
-      home_address: neighborhood ?? null,
-      instagram:    instagram ? instagram.replace(/^@/, '') : null,
+      id:       data.user.id,
+      name:     fullName,
+      username: email.split('@')[0],
+      city:     'New York',
+      phone:    phone.trim() || null,
     });
-    // Ignore duplicate-key errors — the trigger beat us to it
     if (profileError && !profileError.message.includes('duplicate') && !profileError.message.includes('already exists')) {
       set({ isLoading: false });
       throw new Error(profileError.message);
     }
 
-    // If Supabase requires email confirmation, data.session is null here.
-    // In that case we can't fetch the profile yet — tell the user to confirm.
     if (!data.session) {
       set({ isLoading: false });
       throw new Error('Check your email — we sent you a confirmation link. Come back and sign in after confirming.');
@@ -337,6 +335,54 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return;
     if (SUPABASE_CONFIGURED) await supabase.from('profiles').update({ availability_visibility: visibility }).eq('id', user.id);
     const updated = { ...user, availabilityVisibility: visibility };
+    if (!SUPABASE_CONFIGURED) await saveMockUser(updated);
+    set({ user: updated });
+  },
+
+  updateSpotify: async (handle) => {
+    const user = get().user;
+    if (!user) return;
+    const clean = handle.replace(/^@/, '').trim();
+    if (SUPABASE_CONFIGURED) await supabase.from('profiles').update({ spotify: clean }).eq('id', user.id);
+    const updated = { ...user, spotify: clean };
+    if (!SUPABASE_CONFIGURED) await saveMockUser(updated);
+    set({ user: updated });
+  },
+
+  updatePhone: async (phone) => {
+    const user = get().user;
+    if (!user) return;
+    const clean = phone.trim();
+    if (SUPABASE_CONFIGURED) await supabase.from('profiles').update({ phone: clean }).eq('id', user.id);
+    const updated = { ...user, phone: clean };
+    if (!SUPABASE_CONFIGURED) await saveMockUser(updated);
+    set({ user: updated });
+  },
+
+  updatePrompts: async (prompts) => {
+    const user = get().user;
+    if (!user) return;
+    if (SUPABASE_CONFIGURED) await supabase.from('profiles').update({ prompts }).eq('id', user.id);
+    const updated = { ...user, prompts };
+    if (!SUPABASE_CONFIGURED) await saveMockUser(updated);
+    set({ user: updated });
+  },
+
+  changePassword: async (newPassword) => {
+    if (!SUPABASE_CONFIGURED) return;
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
+  },
+
+  toggleFavorite: async (id) => {
+    const user = get().user;
+    if (!user) return;
+    const current = user.favorites ?? [];
+    const favorites = current.includes(id)
+      ? current.filter(f => f !== id)
+      : [...current, id];
+    if (SUPABASE_CONFIGURED) await supabase.from('profiles').update({ favorites }).eq('id', user.id);
+    const updated = { ...user, favorites };
     if (!SUPABASE_CONFIGURED) await saveMockUser(updated);
     set({ user: updated });
   },

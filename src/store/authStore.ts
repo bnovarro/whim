@@ -213,7 +213,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw new Error('Check your email — we sent you a confirmation link. Come back and sign in after confirming.');
     }
 
-    const user = await fetchProfile(data.user.id);
+    const fetched = await fetchProfile(data.user.id);
+    // Override name in state — guarantees the real name shows even if the
+    // DB trigger overwrote it with the email prefix.
+    const user = fetched ? { ...fetched, name: fullName } : null;
     set({ user, isAuthenticated: !!user, isLoading: false });
   },
 

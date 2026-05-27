@@ -299,11 +299,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.heavy,
-    color: colors.text,
+    color: '#fff',
     letterSpacing: -0.5,
   },
   todayChip: {
-    backgroundColor: colors.primary + '18',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radii.full,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   todayChipText: {
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
-    color: colors.primary,
+    color: '#fff',
   },
 
   monthNav: {
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   monthLabel: {
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: '#fff',
   },
 
   calCard: {

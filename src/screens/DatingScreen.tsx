@@ -40,6 +40,7 @@ import {
   getWeatherBg,
 } from '../theme';
 import { RootStackParamList } from '../navigation/types';
+import GradientBackground from '../components/GradientBackground';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -2631,7 +2632,7 @@ export default function DatingScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={heroBg} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} />
+      <GradientBackground />
       <SafeAreaView style={[screenStyles.safe, { backgroundColor: 'transparent' }]} edges={['top']}>
       {/* ── Header ── */}
       <View style={screenStyles.header}>
@@ -2877,10 +2878,10 @@ const screenStyles = StyleSheet.create({
   tabBtnText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.7)',
   },
   tabBtnTextActive: {
-    color: colors.textInverse,
+    color: '#fff',
     fontWeight: typography.weights.bold,
   },
   tabDot: {
@@ -2893,12 +2894,12 @@ const screenStyles = StyleSheet.create({
   title: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.heavy,
-    color: colors.text,
+    color: '#fff',
     letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
   },
   headerActions: {

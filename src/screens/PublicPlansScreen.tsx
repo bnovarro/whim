@@ -26,6 +26,7 @@ import {
 import { RootStackParamList } from '../navigation/types';
 import { useFriendsStore, FriendData } from '../store/friendsStore';
 import { DayAvailability } from '../types';
+import GradientBackground from '../components/GradientBackground';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -1019,7 +1020,7 @@ export default function PublicPlansScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={heroBg} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} />
+      <GradientBackground />
       <SafeAreaView style={[styles.safe, { backgroundColor: 'transparent' }]} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -1171,8 +1172,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
     paddingHorizontal: spacing.base, paddingTop: spacing.base, paddingBottom: spacing.sm,
   },
-  title: { fontSize: typography.sizes.xl, fontWeight: typography.weights.heavy, color: colors.text, letterSpacing: -0.4 },
-  subtitle: { fontSize: typography.sizes.sm, color: colors.textSecondary, marginTop: 2 },
+  title: { fontSize: typography.sizes.xl, fontWeight: typography.weights.heavy, color: '#fff', letterSpacing: -0.4 },
+  subtitle: { fontSize: typography.sizes.sm, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   postBtnWrapper: { borderRadius: radii.full, overflow: 'hidden', ...shadows.md },
   postBtnGrad: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radii.full },
 
@@ -1185,7 +1186,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.borderLight,
   },
   filterTabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  filterTabText: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textSecondary },
+  filterTabText: { fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: 'rgba(255,255,255,0.8)' },
   filterTabTextActive: { color: colors.textInverse, fontWeight: typography.weights.bold },
 
   actFilterScroll: { marginBottom: spacing.base },
@@ -1203,7 +1204,7 @@ const styles = StyleSheet.create({
   // Card
   card: {
     marginHorizontal: spacing.base, marginBottom: spacing.base,
-    backgroundColor: colors.surface, borderRadius: radii.xl,
+    backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: radii.xl,
     padding: spacing.base, borderWidth: 1, borderColor: colors.borderLight, ...shadows.md,
   },
   typeBadge: {

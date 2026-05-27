@@ -375,12 +375,12 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.heavy,
-    color: colors.text,
+    color: '#fff',
     letterSpacing: -0.4,
   },
   dateLabel: {
     fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 2,
   },
   notifButton: {

@@ -188,15 +188,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw new Error('An account with that email already exists. Try signing in instead.');
     }
 
-    // Use upsert so our name always wins even if the DB trigger already
-    // created the profile row with the email prefix as the name.
-    const { error: profileError } = await supabase.from('profiles').upsert({
+    // Upsert first (handles case where row doesn't exist yet)
+    await supabase.from('profiles').upsert({
       id:       data.user.id,
       name:     fullName,
       username: email.split('@')[0],
       city:     'New York',
       phone:    phone.trim() || null,
     }, { onConflict: 'id' });
+
+    // Explicit UPDATE guarantees our name wins even if the DB trigger
+    // ran after the upsert and overwrote it with the email prefix.
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ name: fullName, phone: phone.trim() || null })
+      .eq('id', data.user.id);
     if (profileError) {
       set({ isLoading: false });
       throw new Error(profileError.message);

@@ -16,6 +16,7 @@ import { useWhimStore } from '../store/whimStore';
 import { useWeather } from '../hooks/useWeather';
 import { useLocation } from '../hooks/useLocation';
 import { colors, typography, spacing, radii, shadows, getWeatherBg } from '../theme';
+import GradientBackground from '../components/GradientBackground';
 import { getGreeting, getTodayLabel } from '../utils/dateUtils';
 import { weatherIcon } from '../utils/formatters';
 import WeatherBanner from '../components/WeatherBanner';
@@ -112,12 +113,7 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient
-        colors={heroBg}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.4, y: 1 }}
-      />
+      <GradientBackground />
       <SafeAreaView style={[styles.safe, { backgroundColor: 'transparent' }]} edges={['top']}>
       <ScrollView
         style={styles.scroll}

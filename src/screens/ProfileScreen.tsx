@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, Switch, Linking, Image, TextInput, Modal,
@@ -18,6 +18,7 @@ import { useFriendsStore } from '../store/friendsStore';
 import { useWeather } from '../hooks/useWeather';
 import { useLocation } from '../hooks/useLocation';
 import { colors, typography, spacing, radii, shadows, getWeatherBg } from '../theme';
+import GradientBackground from '../components/GradientBackground';
 import { activityIcons, planTypeConfig } from '../theme';
 
 const { width } = Dimensions.get('window');
@@ -46,8 +47,8 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const {
     user, friends, logout,
-    updateInstagram, updateBeli, updateBio, updatePhotos, updateProfilePhoto,
-    updateAvailabilityVisibility,
+    updateInstagram, updateBeli, updateSpotify, updateBio, updatePhotos,
+    updateProfilePhoto, updateAvailabilityVisibility, updatePrompts,
   } = useAuthStore();
   const { whims } = useWhimStore();
   const { isLinked: calLinked, todayEvents, unlinkCalendar } = useCalendarStore();
@@ -77,6 +78,39 @@ export default function ProfileScreen() {
   const [bioDraft, setBioDraft] = useState(user?.bio ?? '');
   const [profileTab, setProfileTab] = useState<'plans' | 'friends'>('plans');
 
+  // Unified inline-edit modal for social handles + prompts
+  type EditField = 'instagram' | 'beli' | 'spotify' | { prompt: string };
+  const [editField, setEditField] = useState<EditField | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const openEdit = (field: EditField, current: string) => {
+    setEditField(field);
+    setEditValue(current);
+  };
+  const closeEdit = () => { setEditField(null); setEditValue(''); };
+
+  const saveEdit = async () => {
+    if (!editField) return;
+    if (typeof editField === 'string') {
+      const clean = editValue.replace(/^@/, '').trim();
+      if (editField === 'instagram') await updateInstagram(clean);
+      if (editField === 'beli')      await updateBeli(clean);
+      if (editField === 'spotify')   await updateSpotify(clean);
+    } else {
+      // prompt answer
+      const merged = { ...(user?.prompts ?? {}), [editField.prompt]: editValue.trim() };
+      await updatePrompts(merged);
+    }
+    closeEdit();
+  };
+
+  const PROMPTS = [
+    'Favorite restaurant?',
+    'Go-to drink order?',
+    'Best spontaneous memory?',
+    'Always down for...',
+  ];
+
   if (!user) return null;
 
   const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -94,37 +128,9 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleInstagram = () => {
-    Alert.prompt(
-      user.instagram ? 'Instagram' : 'Link Instagram',
-      'Enter your handle (without @)',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Save', onPress: (v?: string) => { if (v) updateInstagram(v); } },
-        user.instagram
-          ? { text: 'Open', onPress: () => Linking.openURL(`https://instagram.com/${user.instagram}`) }
-          : undefined,
-      ].filter(Boolean) as any,
-      'plain-text',
-      user.instagram ?? ''
-    );
-  };
-
-  const handleBeli = () => {
-    Alert.prompt(
-      user.beli ? 'Beli' : 'Link Beli',
-      'Enter your Beli username (without @)',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Save', onPress: (v?: string) => { if (v) updateBeli(v); } },
-        user.beli
-          ? { text: 'Open', onPress: () => Linking.openURL(`https://beliapp.com/${user.beli}`) }
-          : undefined,
-      ].filter(Boolean) as any,
-      'plain-text',
-      user.beli ?? ''
-    );
-  };
+  const handleInstagram = () => openEdit('instagram', user.instagram ?? '');
+  const handleBeli      = () => openEdit('beli',      user.beli      ?? '');
+  const handleSpotify   = () => openEdit('spotify',   user.spotify   ?? '');
 
   const handleSaveBio = () => {
     updateBio(bioDraft);
@@ -185,7 +191,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={heroBg} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} />
+      <GradientBackground />
       <SafeAreaView style={[styles.safe, { backgroundColor: 'transparent' }]} edges={['top']}>
       {/* Nav bar */}
       <View style={styles.navBar}>
@@ -256,6 +262,13 @@ export default function ProfileScreen() {
               {user.beli ? `@${user.beli}` : 'Beli'}
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.socialChip, user.spotify && styles.socialChipLinked]} onPress={handleSpotify} activeOpacity={0.75}>
+            <Ionicons name="musical-notes-outline" size={15} color={user.spotify ? colors.primary : colors.textTertiary} />
+            <Text style={[styles.socialChipText, user.spotify && styles.socialChipTextLinked]}>
+              {user.spotify ? `@${user.spotify}` : 'Spotify'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Stats ── */}
@@ -297,6 +310,30 @@ export default function ProfileScreen() {
             ))}
           </View>
           <Text style={styles.photoHint}>Add up to 6 photos to your profile.</Text>
+        </View>
+
+        {/* ── Prompts ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Prompts</Text>
+          {PROMPTS.map(prompt => {
+            const answer = user.prompts?.[prompt] ?? '';
+            return (
+              <TouchableOpacity
+                key={prompt}
+                style={styles.promptCard}
+                onPress={() => openEdit({ prompt }, answer)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.promptQ}>{prompt}</Text>
+                {answer ? (
+                  <Text style={styles.promptA}>{answer}</Text>
+                ) : (
+                  <Text style={styles.promptEmpty}>Tap to answer...</Text>
+                )}
+                <Ionicons name="pencil-outline" size={14} color={colors.textTertiary} style={styles.promptEdit} />
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* ── Friends ── */}
@@ -624,6 +661,56 @@ export default function ProfileScreen() {
 
         <Text style={styles.footer}>Life's too short for boring plans.</Text>
       </ScrollView>
+
+      {/* ── Inline Edit Modal (social handles + prompts) ── */}
+      <Modal visible={editField !== null} animationType="slide" transparent presentationStyle="overFullScreen">
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={closeEdit} />
+          <View style={styles.bioModal}>
+            <View style={styles.bioModalHeader}>
+              <Text style={styles.bioModalTitle}>
+                {typeof editField === 'string'
+                  ? editField.charAt(0).toUpperCase() + editField.slice(1)
+                  : (editField as any)?.prompt ?? ''}
+              </Text>
+              <TouchableOpacity onPress={closeEdit}>
+                <Ionicons name="close" size={22} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.editHandleRow}>
+              {typeof editField === 'string' && <Text style={styles.atSign}>@</Text>}
+              <TextInput
+                style={[styles.bioInput, { minHeight: 48, paddingTop: 12 }]}
+                value={editValue}
+                onChangeText={setEditValue}
+                placeholder={typeof editField === 'string' ? 'yourhandle' : 'Your answer...'}
+                placeholderTextColor={colors.textTertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={saveEdit}
+              />
+            </View>
+            {typeof editField === 'string' && editValue && (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(
+                  editField === 'instagram' ? `https://instagram.com/${editValue}` :
+                  editField === 'beli'      ? `https://beliapp.com/${editValue}` :
+                  `https://open.spotify.com/user/${editValue}`
+                )}
+                style={styles.openLinkBtn}
+              >
+                <Ionicons name="open-outline" size={14} color={colors.primary} />
+                <Text style={styles.openLinkText}>Open profile</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.bioSaveBtn} onPress={saveEdit}>
+              <Text style={styles.bioSaveBtnText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── Bio Edit Modal ── */}
       <Modal visible={bioModalVisible} animationType="slide" transparent presentationStyle="overFullScreen">
@@ -1314,5 +1401,59 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.bold,
     color: colors.textInverse,
+  },
+
+  // Prompt cards
+  promptCard: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: radii.lg,
+    padding: spacing.base,
+    marginBottom: spacing.sm,
+    ...shadows.sm,
+  },
+  promptQ: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  promptA: {
+    fontSize: typography.sizes.base,
+    color: colors.text,
+    lineHeight: 22,
+  },
+  promptEmpty: {
+    fontSize: typography.sizes.sm,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+  },
+  promptEdit: {
+    position: 'absolute',
+    top: spacing.base,
+    right: spacing.base,
+  },
+
+  // Inline edit modal extras
+  editHandleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  atSign: {
+    fontSize: typography.sizes.lg,
+    color: colors.textSecondary,
+    fontWeight: typography.weights.semibold,
+  },
+  openLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  openLinkText: {
+    fontSize: typography.sizes.sm,
+    color: colors.primary,
+    fontWeight: typography.weights.medium,
   },
 });

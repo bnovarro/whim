@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.whim.app",
+      "bundleIdentifier": "com.bnovarro.whim",
       "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Whim uses your location to find venues and spontaneous plans near you.",

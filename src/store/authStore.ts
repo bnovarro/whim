@@ -175,8 +175,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) { set({ isLoading: false }); throw new Error(error.message); }
-    if (!data.user) { set({ isLoading: false }); throw new Error('Signup failed'); }
 
+    // Supabase returns user:null (no error) when email is already registered —
+    // it hides the distinction to prevent email enumeration.
+    if (!data.user) {
+      set({ isLoading: false });
+      throw new Error('An account with that email already exists. Try signing in instead.');
+    }
+
+    // Insert the profile row. The handle_new_user trigger may have already done
+    // this; "on conflict do nothing" in the trigger means our insert is the
+    // authoritative one (we have the display name from the form).
     const { error: profileError } = await supabase.from('profiles').insert({
       id:           data.user.id,
       name,
@@ -185,7 +194,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       home_address: neighborhood ?? null,
       instagram:    instagram ? instagram.replace(/^@/, '') : null,
     });
-    if (profileError) { set({ isLoading: false }); throw new Error(profileError.message); }
+    // Ignore duplicate-key errors — the trigger beat us to it
+    if (profileError && !profileError.message.includes('duplicate') && !profileError.message.includes('already exists')) {
+      set({ isLoading: false });
+      throw new Error(profileError.message);
+    }
+
+    // If Supabase requires email confirmation, data.session is null here.
+    // In that case we can't fetch the profile yet — tell the user to confirm.
+    if (!data.session) {
+      set({ isLoading: false });
+      throw new Error('Check your email — we sent you a confirmation link. Come back and sign in after confirming.');
+    }
 
     const user = await fetchProfile(data.user.id);
     set({ user, isAuthenticated: !!user, isLoading: false });

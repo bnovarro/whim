@@ -22,8 +22,11 @@ import WeatherBanner from '../components/WeatherBanner';
 import WhimCard from '../components/WhimCard';
 import EmptyState from '../components/common/EmptyState';
 import DailyRecs from '../components/DailyRecs';
+import NotificationsPanel from '../components/NotificationsPanel';
 import { useRecsStore } from '../store/recommendationsStore';
 import { useFriendsStore } from '../store/friendsStore';
+import { useNotificationsStore } from '../store/notificationsStore';
+import { registerForPushNotifications, scheduleMorningNudge } from '../services/notificationService';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'HomeTab'>,
@@ -32,20 +35,37 @@ type Nav = CompositeNavigationProp<
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
-  const { user } = useAuthStore();
+  const { user, updatePushToken } = useAuthStore();
   const { whims } = useWhimStore();
   const { lat, lon } = useLocation();
   const { weather, alerts, isLoading, refresh } = useWeather(lat ?? undefined, lon ?? undefined);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [stripDate, setStripDate] = useState<Date>(new Date());
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const { recs, isLoading: recsLoading, load: loadRecs, refresh: refreshRecs } = useRecsStore();
   const { friends } = useFriendsStore();
+  const { load: loadNotifs, push: pushNotif, unreadCount } = useNotificationsStore();
 
   // Friends who are free today (weekAvailability[0] = today) with non-private visibility
   const availableFriends = friends.filter(
     f => f.weekAvailability[0] === 'free' && f.availabilityVisibility !== 'private',
   );
+
+  // Register push token + load stored notifications on mount
+  useEffect(() => {
+    loadNotifs();
+    registerForPushNotifications().then(token => {
+      if (token && user) updatePushToken(token);
+    });
+  }, [user?.id]);
+
+  // Schedule morning nudge when we know how many friends are free
+  useEffect(() => {
+    if (availableFriends.length > 0) {
+      scheduleMorningNudge(availableFriends.length);
+    }
+  }, [availableFriends.length]);
 
   // Load daily recommendations once weather is available
   useEffect(() => {
@@ -129,8 +149,15 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>{getGreeting()}, {firstName}</Text>
             <Text style={styles.dateLabel}>{getTodayLabel()}</Text>
           </View>
-          <TouchableOpacity style={styles.notifButton}>
+          <TouchableOpacity style={styles.notifButton} onPress={() => setNotifPanelOpen(true)}>
             <Ionicons name="notifications-outline" size={20} color={colors.text} />
+            {unreadCount() > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>
+                  {unreadCount() > 9 ? '9+' : unreadCount()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -304,6 +331,12 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+
+    {/* Notifications slide-in panel */}
+    <NotificationsPanel
+      visible={notifPanelOpen}
+      onClose={() => setNotifPanelOpen(false)}
+    />
     </View>
   );
 }
@@ -359,6 +392,23 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 0, right: 0,
+    minWidth: 16, height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: colors.background,
+  },
+  notifBadgeText: {
+    fontSize: 9,
+    fontWeight: typography.weights.heavy,
+    color: '#fff',
+    lineHeight: 11,
   },
 
   // Week strip

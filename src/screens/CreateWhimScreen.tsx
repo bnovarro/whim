@@ -25,6 +25,8 @@ import {
 import Button from '../components/common/Button';
 import Chip from '../components/common/Chip';
 import MapRadiusPicker from '../components/MapRadiusPicker';
+import { scheduleWhimReminder } from '../services/notificationService';
+import { useNotificationsStore } from '../store/notificationsStore';
 
 const { width } = Dimensions.get('window');
 const TOTAL_STEPS = 5;
@@ -194,6 +196,7 @@ export default function CreateWhimScreen() {
   const { postPlan } = usePublicPlansStore();
   const { lat, lon } = useLocation();
   const { weather } = useWeather(lat ?? undefined, lon ?? undefined);
+  const { push: pushNotif } = useNotificationsStore();
 
   const today = startOfDay(new Date());
   const twoWeekDays = Array.from({ length: 14 }, (_, i) => addDays(today, i));
@@ -324,6 +327,14 @@ export default function CreateWhimScreen() {
           const whimId = await createWhim(params, user.id, user.name);
           navigation.replace('WhimDetail', { whimId });
           launchSearch(whimId, lat ?? 40.7549, lon ?? -73.984, weather);
+          // In-app notification + schedule reminder
+          pushNotif({
+            type: 'whim_created',
+            title: `Whim created 🎉`,
+            body: `Your ${resolvedActivity} Whim for ${resolvedTime} is live. Finding the best spots now.`,
+            data: { whimId },
+          });
+          if (resolvedTime?.start) scheduleWhimReminder(whimId, resolvedActivity ?? 'activity', resolvedTime.start);
         }
       } catch {
         Alert.alert('Oops', 'Something went wrong. Try adjusting your message.');
@@ -426,6 +437,14 @@ export default function CreateWhimScreen() {
       const whimId = await createWhim(params, user.id, user.name);
       navigation.replace('WhimDetail', { whimId });
       launchSearch(whimId, lat ?? 40.7549, lon ?? -73.984, weather);
+      // In-app notification + schedule reminder
+      pushNotif({
+        type: 'whim_created',
+        title: `Whim created 🎉`,
+        body: `Your ${activityType ?? 'activity'} Whim for ${timePreset.label} is live. Finding spots now.`,
+        data: { whimId },
+      });
+      if (timePreset?.start) scheduleWhimReminder(whimId, activityType ?? 'activity', timePreset.start);
     } catch {
       Alert.alert('Oops', 'Something went wrong starting your whim.');
     } finally {

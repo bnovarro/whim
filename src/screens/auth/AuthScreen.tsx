@@ -87,9 +87,11 @@ export default function AuthScreen({ navigation, route }: Props) {
   const [lastName, setLastName]         = useState('');
   const [phone, setPhone]               = useState('');
   const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [password, setPassword]             = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword]     = useState(false);
+  const [showConfirm, setShowConfirm]       = useState(false);
+  const [googleLoading, setGoogleLoading]   = useState(false);
 
   const { login, signup, loginWithGoogle, isLoading } = useAuthStore();
   const { saveToken } = useCalendarStore();
@@ -135,6 +137,8 @@ export default function AuthScreen({ navigation, route }: Props) {
     if (tab === 'signup') {
       if (!firstName.trim()) { Alert.alert('Hold on', 'Enter your first name.'); return; }
       if (!lastName.trim())  { Alert.alert('Hold on', 'Enter your last name.');  return; }
+      if (password.length < 8) { Alert.alert('Weak password', 'Password must be at least 8 characters.'); return; }
+      if (password !== confirmPassword) { Alert.alert('Passwords don\'t match', 'Make sure both password fields are the same.'); return; }
     }
     try {
       if (tab === 'signup') {
@@ -261,14 +265,41 @@ export default function AuthScreen({ navigation, route }: Props) {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  returnKeyType="done"
-                  onSubmitEditing={handleSubmit}
+                  returnKeyType={tab === 'signup' ? 'next' : 'done'}
+                  onSubmitEditing={tab === 'login' ? handleSubmit : undefined}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(s => !s)} style={styles.eyeBtn}>
                   <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
             </Field>
+
+            {tab === 'signup' && (
+              <Field label="Confirm password" required>
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { paddingRight: spacing['3xl'] + 4, flex: 1 },
+                      confirmPassword.length > 0 && password !== confirmPassword && styles.inputError,
+                    ]}
+                    placeholder="Re-enter your password"
+                    placeholderTextColor={colors.textTertiary}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirm}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSubmit}
+                  />
+                  <TouchableOpacity onPress={() => setShowConfirm(s => !s)} style={styles.eyeBtn}>
+                    <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                {confirmPassword.length > 0 && password !== confirmPassword && (
+                  <Text style={styles.errorHint}>Passwords don't match</Text>
+                )}
+              </Field>
+            )}
 
             {/* Submit */}
             <TouchableOpacity
@@ -434,6 +465,16 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
 
+  inputError: {
+    borderColor: '#E53E3E',
+    borderWidth: 1.5,
+  },
+  errorHint: {
+    fontSize: typography.sizes.xs,
+    color: '#E53E3E',
+    marginLeft: spacing.xs,
+    marginTop: 2,
+  },
   profileHint: {
     fontSize: typography.sizes.sm,
     color: colors.textTertiary,
